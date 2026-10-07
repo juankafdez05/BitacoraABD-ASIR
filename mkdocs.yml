@@ -1,16 +1,13 @@
 site_name: Bitácora ABD
 site_description: "Laboratorio de Base de Datos · 2.º ASIR · IES Gonzalo Nazareno · Curso 2026/27"
-site_author: "Rube, Alfredo y Juan Carlos"
 site_url: https://juankafdez05.github.io/BitacoraABD-ASIR/
 repo_url: https://github.com/juankafdez05/BitacoraABD-ASIR
 repo_name: juankafdez05/BitacoraABD-ASIR
-edit_uri: edit/main/docs/
-copyright: "Grupo ABD · IES Gonzalo Nazareno · 2.º ASIR · Curso 2026/27 · Licencia pendiente de acordar"
 docs_dir: docs
 site_dir: site
 use_directory_urls: true
 
-# El menú se genera solo desde docs/ (ver hooks/autonav.py). No hay "nav:" manual.
+# El menú se genera solo desde docs/practicas/ (ver hooks/autonav.py). No hay "nav:" manual.
 hooks:
   - hooks/autonav.py
 
@@ -51,30 +48,17 @@ theme:
   logo: assets/logo.svg
   favicon: assets/logo.svg
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: custom
-      accent: custom
-      toggle:
-        icon: material/weather-night
-        name: Cambiar a modo oscuro
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: custom
-      accent: custom
-      toggle:
-        icon: material/weather-sunny
-        name: Cambiar a modo claro
+    scheme: slate        # un único tema oscuro, estilo terminal
+    primary: custom
+    accent: custom
   features:
-    - navigation.indexes
-    - navigation.sections
+    - navigation.indexes   # práctica y apartado tienen su propia página y se pliegan/despliegan
     - navigation.top
     - navigation.footer
     - toc.follow
     - search.suggest
     - search.highlight
     - content.code.copy
-    - content.action.edit
 
 plugins:
   - search:
@@ -93,17 +77,9 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
-  - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 extra_css:
   - assets/extra.css
 
 extra:
-  # Orden de la raíz del menú. Las prácticas y sus apartados NO se listan aquí.
-  autonav:
-    top_order: [index.md, equipo.md, practicas, organizacion.md, contribuir.md]
   generator: false

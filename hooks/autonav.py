@@ -1,23 +1,27 @@
 """Navegación automática para Bitácora ABD.
 
-Construye el menú a partir de las carpetas y los archivos Markdown de docs/.
-No hace falta front matter ni editar listas de navegación.
+Construye el menú lateral (práctica > apartado > documentos) a partir de las
+carpetas y los archivos Markdown de docs/practicas/. No hace falta front matter
+ni editar listas de navegación.
 
-Reglas principales (ver README.md):
-- El primer H1 fuera de bloques de código es el título del documento.
+Reglas (ver README.md):
+- El primer H1 fuera de bloques de código es el título del documento y es el
+  nombre con el que se enlaza en el menú y en la página de inicio.
 - Los prefijos numéricos (01-, 02_...) ordenan y no se muestran.
-- index.md es opcional y actúa como portada de su sección.
+- index.md es opcional y actúa como portada de su práctica o apartado; su
+  contenido se completa con la lista de lo que contiene.
 - Carpetas sin Markdown, carpetas de recursos, archivos ocultos y enlaces
   simbólicos no entran en el menú (los enlaces simbólicos tampoco se publican).
+- En docs/index.md, los marcadores <!-- practicas --> y <!-- documentos -->
+  se sustituyen por la vista de prácticas y por la lista de todos los documentos.
 """
 from __future__ import annotations
 
 import logging
+import os
 import re
 import unicodedata
 from pathlib import Path
-
-from mkdocs.structure.files import File, Files
 
 log = logging.getLogger("mkdocs.hooks.autonav")
 
@@ -31,14 +35,12 @@ RESOURCE_DIRS = {
     "assets", "img", "images", "imagenes", "imágenes", "recursos", "media",
     "videos", "vídeos", "adjuntos", "capturas", "stylesheets", "javascripts",
 }
-# Archivos de la raíz de docs/ que no deben salir en el menú.
-SKIP_TOP_FILES = {"404.md"}
 
-DEFAULT_TOP_ORDER = ["index.md", "equipo.md", "practicas", "organizacion.md", "contribuir.md"]
-TOP_LABELS = {"index.md": "Inicio"}
-
+HOME = "index.md"
+HOME_LABEL = "Inicio"
 PRACTICAS_DIR = "practicas"
-PRACTICAS_INDEX = f"{PRACTICAS_DIR}/index.md"
+MARK_PRACTICAS = "<!-- practicas -->"
+MARK_DOCUMENTOS = "<!-- documentos -->"
 
 
 # --------------------------------------------------------------------------
@@ -98,6 +100,28 @@ def first_h1(text: str) -> str | None:
     return None
 
 
+def first_paragraph(text: str) -> str | None:
+    """Primer párrafo de texto plano tras el H1 (para las tarjetas de inicio)."""
+    seen_h1 = False
+    para: list[str] = []
+    for line in text.lstrip("\ufeff").splitlines():
+        s = line.strip()
+        if not seen_h1:
+            if ATX_RE.match(line):
+                seen_h1 = True
+            continue
+        if not s:
+            if para:
+                break
+            continue
+        if s.startswith(("#", ">", "-", "*", "|", "<", "`", "!", "=")) or s[0].isdigit():
+            if para:
+                break
+            continue
+        para.append(s)
+    return _plain(" ".join(para)) if para else None
+
+
 def clean_label(name: str) -> str:
     """Etiqueta legible a partir de un nombre de archivo o carpeta."""
     stem = name[:-3] if name.lower().endswith(".md") else name
@@ -126,11 +150,15 @@ def _is_safe(path: Path, docs_root: Path) -> bool:
     return True
 
 
-def _read_title(path: Path) -> str | None:
+def _read(path: Path) -> str:
     try:
-        return first_h1(path.read_bytes().decode("utf-8", errors="replace"))
+        return path.read_bytes().decode("utf-8", errors="replace")
     except OSError:
-        return None
+        return ""
+
+
+def _read_title(path: Path) -> str | None:
+    return first_h1(_read(path))
 
 
 def _dir_entries(directory: Path, docs_root: Path):
@@ -147,130 +175,185 @@ def _dir_entries(directory: Path, docs_root: Path):
     return dirs, files
 
 
-def _section(directory: Path, docs_root: Path, virtual_h1: dict[str, str]):
-    """Devuelve (etiqueta, [hijos]) o None si la carpeta no tiene Markdown."""
-    rel = directory.relative_to(docs_root).as_posix()
-    index = directory / "index.md"
-    has_index = index.is_file() and _is_safe(index, docs_root)
-    index_rel = f"{rel}/index.md"
+def _children(directory: Path, docs_root: Path) -> list:
+    """Hijos de una carpeta en formato `nav` de MkDocs (sin su index.md)."""
     dirs, files = _dir_entries(directory, docs_root)
-
-    children = []
+    out = []
     for item in sorted(dirs + files, key=lambda p: sort_key(p.name)):
         if item.is_dir():
-            sub = _section(item, docs_root, virtual_h1)
+            sub = _section(item, docs_root)
             if sub:
-                children.append({sub[0]: sub[1]})
+                out.append({sub[0]: sub[1]})
         else:
-            irel = item.relative_to(docs_root).as_posix()
-            children.append({_read_title(item) or clean_label(item.name): irel})
+            rel = item.relative_to(docs_root).as_posix()
+            out.append({_read_title(item) or clean_label(item.name): rel})
+    return out
 
-    virtual = (not has_index) and index_rel in virtual_h1
-    if not children and not has_index and not virtual:
+
+def _section(directory: Path, docs_root: Path):
+    """Devuelve (etiqueta, [hijos]) o None si la carpeta no tiene Markdown."""
+    index = directory / "index.md"
+    has_index = index.is_file() and _is_safe(index, docs_root)
+    children = _children(directory, docs_root)
+    if not children and not has_index:
         return None  # carpeta vacía (o solo recursos): no aparece
-
     if has_index:
         label = _read_title(index) or clean_label(directory.name)
-        children.insert(0, index_rel)
-    elif virtual:
-        label = virtual_h1[index_rel]
-        children.insert(0, index_rel)
+        children.insert(0, index.relative_to(docs_root).as_posix())
     else:
         label = clean_label(directory.name)
     return label, children
 
 
-def build_nav(docs_dir: str | Path, top_order: list[str] | None = None,
-              virtual_h1: dict[str, str] | None = None) -> list:
-    """Construye la estructura `nav` de MkDocs a partir de docs/."""
+def _practicas(docs_root: Path) -> list:
+    """Lista de prácticas: [{etiqueta: [hijos]}, ...] (los hijos son apartados y documentos)."""
+    base = docs_root / PRACTICAS_DIR
+    if not base.is_dir() or not _is_safe(base, docs_root):
+        return []
+    return _children(base, docs_root)
+
+
+def build_nav(docs_dir: str | Path) -> list:
+    """Menú: Inicio y, debajo, cada práctica con sus apartados y documentos."""
     docs_root = Path(docs_dir)
-    virtual_h1 = virtual_h1 or {}
-    top_order = top_order or DEFAULT_TOP_ORDER
-    entries: dict[str, object] = {}
+    nav: list = []
+    home = docs_root / HOME
+    if home.is_file() and _is_safe(home, docs_root):
+        nav.append({HOME_LABEL: HOME})
+    nav.extend(_practicas(docs_root))
+    return nav
 
-    for child in sorted(docs_root.iterdir(), key=lambda p: sort_key(p.name)):
-        if not _is_safe(child, docs_root):
-            continue
-        if child.is_dir():
-            if child.name.lower() in RESOURCE_DIRS or child.name.startswith("_"):
-                continue
-            sec = _section(child, docs_root, virtual_h1)
-            if sec:
-                entries[child.name] = {sec[0]: sec[1]}
-        elif child.suffix.lower() == ".md" and child.name not in SKIP_TOP_FILES:
-            label = TOP_LABELS.get(child.name) or _read_title(child) or clean_label(child.name)
-            entries[child.name] = {label: child.name}
 
-    ordered = [entries.pop(k) for k in top_order if k in entries]
-    ordered += [entries[k] for k in sorted(entries, key=sort_key)]
-    return ordered
+# --------------------------------------------------------------------------
+# Recorridos sobre la estructura del menú
+# --------------------------------------------------------------------------
+def _is_index(path: str) -> bool:
+    return path.endswith("index.md")
 
 
 def count_documents(nav) -> int:
     total = 0
     for item in nav:
         if isinstance(item, str):
-            total += 0 if item.endswith("index.md") else 1
+            total += 0 if _is_index(item) else 1
         elif isinstance(item, dict):
             for value in item.values():
                 total += count_documents(value) if isinstance(value, list) else (
-                    0 if value.endswith("index.md") else 1)
+                    0 if _is_index(value) else 1)
     return total
 
 
-# --------------------------------------------------------------------------
-# Índice de prácticas generado (solo si el grupo no escribe practicas/index.md)
-# --------------------------------------------------------------------------
-GENERATED_H1 = "Prácticas"
+def _landing(children: list) -> str | None:
+    """Página a la que lleva una sección: su index.md o, si no, su primer documento."""
+    for child in children:
+        if isinstance(child, str):
+            return child
+        for value in child.values():
+            target = _landing(value) if isinstance(value, list) else value
+            if target:
+                return target
+    return None
 
 
-def _practice_cards(docs_root: Path) -> str:
-    base = docs_root / PRACTICAS_DIR
-    out = [
-        f"# {GENERATED_H1}",
-        "",
-        "Esta lista se genera automáticamente a partir de las carpetas de "
-        "`docs/practicas/`. Cada práctica nueva aparece aquí sin tocar ningún "
-        "archivo de navegación.",
-        "",
-    ]
+def documents(nav, trail: tuple[str, ...] = ()):
+    """Recorre todos los documentos en orden de menú: (título, ruta, camino de secciones)."""
+    for item in nav:
+        if isinstance(item, str):
+            continue  # index.md de la sección: no es un documento
+        for label, value in item.items():
+            if isinstance(value, list):
+                yield from documents(value, trail + (label,))
+            elif not _is_index(value):
+                yield label, value, trail
+
+
+def _rel(target: str, page_uri: str) -> str:
+    """Enlace relativo (formato Markdown, con .md) desde una página a otra."""
+    start = os.path.dirname(page_uri) or "."
+    return Path(os.path.relpath(target, start)).as_posix()
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+# --------------------------------------------------------------------------
+# Contenido generado
+# --------------------------------------------------------------------------
+def render_practicas(docs_root: Path, page_uri: str = HOME) -> str:
+    """Vista de prácticas: una tarjeta por práctica con sus apartados."""
+    practicas = _practicas(docs_root)
+    if not practicas:
+        return "Todavía no hay prácticas publicadas.\n"
     cards = []
-    if base.is_dir():
-        for d in sorted(base.iterdir(), key=lambda p: sort_key(p.name)):
-            if not d.is_dir() or not _is_safe(d, docs_root) or d.name.lower() in RESOURCE_DIRS:
+    for item in practicas:
+        for label, value in item.items():
+            if not isinstance(value, list):  # documento suelto en practicas/
                 continue
-            sec = _section(d, docs_root, {})
-            if not sec:
-                continue
-            label, children = sec
-            n = count_documents([{label: children}])
-            target = children[0] if isinstance(children[0], str) else None
-            if target is None:
-                first = children[0]
-                target = next(iter(first.values()))
-                while isinstance(target, list):
-                    target = target[0] if isinstance(target[0], str) else next(iter(target[0].values()))
-            href = Path(target).relative_to(PRACTICAS_DIR).as_posix()
-            plural = "documento" if n == 1 else "documentos"
-            cards.append(f"-   **[{label}]({href})**\n\n    {n} {plural} publicados.")
-    if cards:
-        out.append('<div class="grid cards" markdown>\n')
-        out.extend(c + "\n" for c in cards)
-        out.append("</div>")
-    else:
-        out.append("Todavía no hay prácticas publicadas.")
-    return "\n".join(out) + "\n"
+            href = _rel(_landing(value), page_uri)
+            lines = [f"-   **[{label}]({href})**", ""]
+            index = next((c for c in value if isinstance(c, str) and _is_index(c)), None)
+            desc = first_paragraph(_read(docs_root / index)) if index else None
+            if desc:
+                lines += [f"    {desc}", ""]
+            apartados = [(l, v) for c in value if isinstance(c, dict) for l, v in c.items()
+                         if isinstance(v, list)]
+            for a_label, a_children in apartados:
+                a_href = _rel(_landing(a_children), page_uri)
+                n = count_documents([{a_label: a_children}])
+                lines.append(f"    - [{a_label}]({a_href}) · {_plural(n, 'documento', 'documentos')}")
+            if apartados:
+                lines.append("")
+            else:
+                n = count_documents([{label: value}])
+                lines += [f"    {_plural(n, 'documento', 'documentos')}", ""]
+            cards.append("\n".join(lines))
+    return '<div class="grid cards" markdown>\n\n' + "\n\n".join(cards) + "\n\n</div>\n"
+
+
+def render_documentos(docs_root: Path, page_uri: str = HOME) -> str:
+    """Galería de todos los documentos: un widget compacto por documento (título interno + ubicación)."""
+    cards = []
+    for label, path, trail in documents(_practicas(docs_root)):
+        ruta = " › ".join(trail)
+        lines = [f"-   [{label}]({_rel(path, page_uri)})"]
+        if ruta:
+            lines += ["", f'    <span class="doc-ruta">{ruta}</span>']
+        cards.append("\n".join(lines))
+    if not cards:
+        return "Todavía no hay documentos publicados.\n"
+    return '<div class="grid cards doc-grid" markdown>\n\n' + "\n\n".join(cards) + "\n\n</div>\n"
+
+
+def _render_tree(children: list, page_uri: str, depth: int = 0) -> list[str]:
+    pad = "    " * depth
+    out = []
+    for item in children:
+        if isinstance(item, str):
+            continue
+        for label, value in item.items():
+            if isinstance(value, list):
+                target = _landing(value)
+                head = f"[{label}]({_rel(target, page_uri)})" if target else label
+                out.append(f"{pad}- **{head}**")
+                out.extend(_render_tree(value, page_uri, depth + 1))
+            else:
+                out.append(f"{pad}- [{label}]({_rel(value, page_uri)})")
+    return out
+
+
+def render_contenido(docs_root: Path, page_uri: str) -> str:
+    """Lista de lo que contiene la carpeta de un index.md (práctica o apartado)."""
+    directory = (docs_root / page_uri).parent
+    children = _children(directory, docs_root)
+    lines = _render_tree(children, page_uri)
+    return "\n".join(lines) + "\n" if lines else ""
 
 
 # --------------------------------------------------------------------------
 # Eventos de MkDocs
 # --------------------------------------------------------------------------
-def _top_order(config) -> list[str]:
-    extra = config.get("extra") or {}
-    return list((extra.get("autonav") or {}).get("top_order") or DEFAULT_TOP_ORDER)
-
-
-def on_files(files: Files, config):
+def on_files(files, config):
     docs_root = Path(config["docs_dir"])
 
     # 1) Seguridad: no publicar enlaces simbólicos ni nada fuera de docs/.
@@ -295,13 +378,20 @@ def on_files(files: Files, config):
             log.info("Se omite (enlace simbólico o fuera de docs/): %s", f.src_uri)
             files.remove(f)
 
-    # 2) Índice de prácticas generado si el grupo no lo ha escrito.
-    virtual: dict[str, str] = {}
-    if (docs_root / PRACTICAS_DIR).is_dir() and files.get_file_from_path(PRACTICAS_INDEX) is None:
-        content = _practice_cards(docs_root)
-        files.append(File.generated(config, PRACTICAS_INDEX, content=content))
-        virtual[PRACTICAS_INDEX] = GENERATED_H1
-
-    # 3) Menú automático (se recalcula en cada compilación).
-    config["nav"] = build_nav(docs_root, _top_order(config), virtual)
+    # 2) Menú automático (se recalcula en cada compilación).
+    config["nav"] = build_nav(docs_root)
     return files
+
+
+def on_page_markdown(markdown, page, config, files):
+    docs_root = Path(config["docs_dir"])
+    uri = page.file.src_uri
+    if uri == HOME:
+        return (markdown
+                .replace(MARK_PRACTICAS, render_practicas(docs_root, uri))
+                .replace(MARK_DOCUMENTOS, render_documentos(docs_root, uri)))
+    if uri.startswith(f"{PRACTICAS_DIR}/") and uri.endswith("/index.md"):
+        contenido = render_contenido(docs_root, uri)
+        if contenido:
+            return markdown.rstrip() + "\n\n## Contenido\n\n" + contenido
+    return markdown

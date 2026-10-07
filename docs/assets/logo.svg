@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="Bitácora ABD">
   <title>Bitácora ABD</title>
-  <path d="M24 3 42 13.5v21L24 45 6 34.5v-21Z" fill="#0b3d2e" stroke="#7fd6a8" stroke-width="2" stroke-linejoin="round"/>
-  <ellipse cx="24" cy="16" rx="9" ry="3.6" fill="none" stroke="#e8f5ee" stroke-width="2"/>
-  <path d="M15 16v14c0 2 4 3.6 9 3.6s9-1.6 9-3.6V16" fill="none" stroke="#e8f5ee" stroke-width="2"/>
-  <path d="M15 23c0 2 4 3.6 9 3.6s9-1.6 9-3.6" fill="none" stroke="#7fd6a8" stroke-width="2"/>
+  <path d="M24 3 42 13.5v21L24 45 6 34.5v-21Z" fill="#1f232b" stroke="#8cc8f2" stroke-width="2" stroke-linejoin="round"/>
+  <ellipse cx="24" cy="16" rx="9" ry="3.6" fill="none" stroke="#e9ecf1" stroke-width="2"/>
+  <path d="M15 16v14c0 2 4 3.6 9 3.6s9-1.6 9-3.6V16" fill="none" stroke="#e9ecf1" stroke-width="2"/>
+  <path d="M15 23c0 2 4 3.6 9 3.6s9-1.6 9-3.6" fill="none" stroke="#c3a6ee" stroke-width="2"/>
 </svg>
