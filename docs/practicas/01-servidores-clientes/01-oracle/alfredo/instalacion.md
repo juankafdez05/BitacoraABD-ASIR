@@ -1,4 +1,4 @@
-# Instalación de Oracle Database 26ai Enterprise en Debian 13
+# Instalación de Oracle Database 26ai Enterprise en Debian 13(mediante Gold Image)
 
 Esta guía detalla el procedimiento para preparar el sistema operativo e instalar Oracle Database 26ai Enterprise Edition (instalación mediante *gold image* y creación de una base de datos contenedora CDB con PDB) en un entorno Debian 13 (Trixie).
 
