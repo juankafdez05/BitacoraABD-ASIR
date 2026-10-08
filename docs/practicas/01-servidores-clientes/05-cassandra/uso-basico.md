@@ -2,13 +2,19 @@
 
 **Cosas a tener en cuenta sobre cql:**
     
-    - A pesar de parecerse enormemente a sql, tiene limitaciones muy importantes
-    - No existen relaciones en las tablas, así que información que deba estar en varias tablas sera replicada e lugar de enlazada.
-    - Hay que definir el orden de muestra de los datos a la hora de crear la propia tabla, y tras esto no pueden ordenarse de otra manera.
-    - Solo se puede filtrar en consultas de forma eficiente por elementos de la clave primaria
-    - En los filtros de las consultas, los elementos de la pk siempre deben ir en orden y su orden no se puede alterar. Si en la tabla los elementos de la pk se declararon por ejemplo como ((A),B,C), solo se podrá visualizar en ese orden.
-    - En un filtro, la key principal ("clave de partición") de la pk siempre debe estar presente con un operador de igualdad (=).
-    - Regla del "salto de columnas": No puedes saltarte el orden físico de los elementos de la pk en el filtro. Siguiendo el ejemplo ((A), B, C), puedes filtrar por A, o por A y B, o por A, B y C. Sin embargo, jamás podrás filtrar por A y C sin incluir a B en medio.
+- A pesar de parecerse enormemente a sql, tiene limitaciones muy importantes
+
+- No existen relaciones en las tablas, así que información que deba estar en varias tablas sera replicada e lugar de enlazada.
+
+- Hay que definir el orden de muestra de los datos a la hora de crear la propia tabla, y tras esto no pueden ordenarse de otra manera.
+
+- Solo se puede filtrar en consultas de forma eficiente por elementos de la clave primaria
+
+- En los filtros de las consultas, los elementos de la pk siempre deben ir en orden y su orden no se puede alterar. Si en la tabla los elementos de la pk se declararon por ejemplo como ((A),B,C), solo se podrá visualizar en ese orden.
+
+- En un filtro, la key principal ("clave de partición") de la pk siempre debe estar presente con un operador de igualdad (=).
+
+- Regla del "salto de columnas": No puedes saltarte el orden físico de los elementos de la pk en el filtro. Siguiendo el ejemplo ((A), B, C), puedes filtrar por A, o por A y B, o por A, B y C. Sin embargo, jamás podrás filtrar por A y C sin incluir a B en medio.
 
 
 En Cassandra, la base de datos se denomina **keyspace**. Los permisos sobre el keyspace los concede un administrador.
