@@ -1,4 +1,4 @@
-# Guía de Instalación y Configuración de Oracle Instant Client en Linux
+# Guía de Instalación y Configuración de Oracle Instant Client en Linux (Por Alfredo)
 
 Esta guía describe el procedimiento para la instalación y configuración de Oracle Instant Client en entornos Debian13. También abarcaremos la resolución de nombres a través del archivo `tnsnames.ora`.
 

@@ -1,4 +1,4 @@
-# Guía de Instalación, Configuración y Uso Básico de MongoDB (servidor) y Mongosh(cliente) en Debian 13
+# Guía de Instalación, Configuración y Uso Básico de MongoDB (servidor) y Mongosh(cliente) en Debian 13 (Por Alfredo)
 
 Esta guía cubre el procedimiento completo de instalación de MongoDB Community y `mongosh` (cliente), la activación de la autenticación, la configuración de acceso remoto, la gestión básica de usuarios y las operaciones de creación de bases de datos, inserción y consulta de datos.
 

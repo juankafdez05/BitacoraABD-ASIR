@@ -1,6 +1,6 @@
 
 
-# Instalación de Oracle AI Database 26ai Enterprise en Debian 13 mediante RPM
+# Instalación de Oracle AI Database 26ai Enterprise en Debian 13 mediante RPM (Por Juan Carlos)
 
 RPM de Oracle Linux 9 funciona en Debian 13, ya que los binarios están compilados contra una glibc más antigua que la de Debian 13 y Linux ejecuta sin problema binarios enlazados con una glibc anterior. Si es verdad que el instalador del RPM (`dnf`/`rpm` con sus scripts) no funciona así que lo sustituiremos por pasos manuales.
 
