@@ -55,13 +55,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
 mkdocs serve                       # http://127.0.0.1:8000/BitacoraABD-ASIR/
-python -m pytest -q                # pruebas
-mkdocs build --strict              # construir en site/
-python tools/check_site.py site    # comprobar enlaces, recursos y secretos
+python -m pytest -q                # pruebas (opcionales)
+mkdocs build                       # construir en site/
+python tools/check_site.py site    # comprobar enlaces y recursos (opcional)
 ```
 
 Configuración en `mkdocs.yml`, estilos en `docs/assets/extra.css` y generación del menú en `hooks/autonav.py`.
 
 ## Publicar
 
-Cada cambio que llega a `main` ejecuta `.github/workflows/pages.yml` (pruebas → construcción → despliegue). En **Settings → Pages → Source** debe estar elegido **GitHub Actions**. La primera vez puede usarse `bash tools/publicar.sh`.
+Cada cambio que llega a `main` ejecuta `.github/workflows/pages.yml` (construcción → despliegue). En **Settings → Pages → Source** debe estar elegido **GitHub Actions**. La primera vez puede usarse `bash tools/publicar.sh`.
