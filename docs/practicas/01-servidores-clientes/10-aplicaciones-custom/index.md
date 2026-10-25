@@ -13,13 +13,13 @@ Aplicación escrita en python usando el framework Flask. Se conecta a una base d
 
 ## Aplicación de Juan Carlos
 
-Descripción
+Aplicación web desarrollada en Python utilizando el framework Flask. Se conecta a una base de datos PostgreSQL mediante el driver Psycopg2. Permite consultar las tablas accesibles para el usuario conectado, visualizar sus registros y filtrar por los valores de sus columnas. 
 
 ###Enlaces:
 
-- [Video]()
+- [Video](https://youtu.be/lGh-RiOFbaU)
 
-- [Ficheros App]()
+- [Ficheros App](./webpostgres.tar.xz)
 
 ## Aplicación de Ruben
 
